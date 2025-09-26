@@ -60,7 +60,7 @@ export const waitForDeploy = async (
   }
 };
 
-const isFailedDeploy = (status: CheckDeployResponse["status"]) => {
+export const isFailedDeploy = (status: CheckDeployResponse["status"]) => {
   return (
     status === "deactivated" ||
     status === "build_failed" ||
@@ -68,6 +68,18 @@ const isFailedDeploy = (status: CheckDeployResponse["status"]) => {
     status === "canceled" ||
     status === "pre_deploy_failed"
   );
+};
+export const isDeployInProgress = (status: CheckDeployResponse["status"]) => {
+  return (
+    status === "created" ||
+    status === "queued" ||
+    status === "build_in_progress" ||
+    status === "update_in_progress" ||
+    status === "pre_deploy_in_progress"
+  );
+};
+export const isDeployCompleted = (status: CheckDeployResponse["status"]) => {
+  return status === "live";
 };
 
 type CheckDeployResponse = {

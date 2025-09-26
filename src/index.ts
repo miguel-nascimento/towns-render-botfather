@@ -2,7 +2,14 @@ import { makeTownsBot } from "@towns-protocol/bot";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import commands from "./commands";
-import { getService, triggerDeploy, updateEnv, waitForDeploy } from "./render";
+import {
+  getService,
+  isDeployCompleted,
+  isDeployInProgress,
+  triggerDeploy,
+  updateEnv,
+  waitForDeploy,
+} from "./render";
 
 const bot = await makeTownsBot(
   process.env.APP_PRIVATE_DATA!,
@@ -40,7 +47,16 @@ bot.onSlashCommand("setup", async (handler, { channelId, args }) => {
     process.env.RENDER_SERVICE_ID!,
     deployId,
     async (status) => {
-      await handler.editMessage(channelId, eventId, `Deploy status: ${status}`);
+      const emoji = isDeployInProgress(status)
+        ? "🔄"
+        : isDeployCompleted(status)
+        ? "✅"
+        : "❌";
+      await handler.editMessage(
+        channelId,
+        eventId,
+        `${emoji} Deploy status: \`${status}\``
+      );
     }
   );
   const {
