@@ -1,0 +1,35 @@
+{
+  "name": "render-the-botfather",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "dist/bot-quickstart.cjs",
+  "scripts": {
+    "build": "tsc --noEmit && node ./esbuild.config.mjs",
+    "clean": "rm -rf dist",
+    "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --env-file=.env ./esbuild.config.mjs --watch",
+    "lint": "eslint --format unix ./src  --max-warnings=0",
+    "lint:fix": "eslint --format unix ./src  --max-warnings=0 --fix",
+    "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --env-file=.env dist/bot-quickstart.cjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@connectrpc/connect-node": "^2.0.0",
+    "@towns-protocol/bot": "^0.0.356",
+    "@towns-protocol/proto": "^0.0.356",
+    "@towns-protocol/web3": "^0.0.356",
+    "hono": "^4.7.11"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.8",
+    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/parser": "^8.29.0",
+    "esbuild": "^0.25.9",
+    "eslint": "^8.57.1",
+    "eslint-import-resolver-typescript": "^4.3.2",
+    "eslint-plugin-import-x": "^4.10.2",
+    "typescript": "^5.8.2"
+  },
+  "files": [
+    "/dist"
+  ]
+}
