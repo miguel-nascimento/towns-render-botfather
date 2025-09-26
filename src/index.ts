@@ -12,7 +12,13 @@ const bot = await makeTownsBot(
   }
 );
 
+let inProgress = false;
+
 bot.onSlashCommand("setup", async (handler, { channelId, args }) => {
+  if (inProgress) {
+    await handler.sendMessage(channelId, "Setup already in progress.");
+    return;
+  }
   const [appPrivateData, jwtSecret] = args;
   if (!appPrivateData || !jwtSecret) {
     await handler.sendMessage(
@@ -21,6 +27,7 @@ bot.onSlashCommand("setup", async (handler, { channelId, args }) => {
     );
     return;
   }
+  inProgress = true;
   const { eventId } = await handler.sendMessage(channelId, "Setup started...");
   await updateEnv(process.env.RENDER_PROJECT_ID!, {
     APP_PRIVATE_DATA: appPrivateData,
@@ -44,6 +51,7 @@ bot.onSlashCommand("setup", async (handler, { channelId, args }) => {
     eventId,
     `Setup completed. You can use \`${url}/webhook\` to finish your bot setup and receive events.`
   );
+  inProgress = false;
 });
 
 const { jwtMiddleware, handler } = await bot.start();
