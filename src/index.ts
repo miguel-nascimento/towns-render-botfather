@@ -37,17 +37,19 @@ bot.onSlashCommand("setup", async (handler, { channelId, args }) => {
   inProgress = true;
   const { eventId } = await handler.sendMessage(channelId, "Setup started...");
   console.log("will update env");
-  await updateEnv(process.env.RENDER_SERVICE_ID!, {
+  await updateEnv(process.env.RENDER_BOT_SERVICE_ID!, {
     APP_PRIVATE_DATA: appPrivateData,
     JWT_SECRET: jwtSecret,
   });
   console.log("updated env");
   await handler.editMessage(channelId, eventId, "Deploying...");
   console.log("will trigger deploy");
-  const { id: deployId } = await triggerDeploy(process.env.RENDER_SERVICE_ID!);
+  const { id: deployId } = await triggerDeploy(
+    process.env.RENDER_BOT_SERVICE_ID!
+  );
   console.log("triggered deploy");
   await waitForDeploy(
-    process.env.RENDER_SERVICE_ID!,
+    process.env.RENDER_BOT_SERVICE_ID!,
     deployId,
     async (status) => {
       console.log("deploy status changed", status);
@@ -66,7 +68,7 @@ bot.onSlashCommand("setup", async (handler, { channelId, args }) => {
   console.log("deploy completed");
   const {
     serviceDetails: { url },
-  } = await getService(process.env.RENDER_SERVICE_ID!);
+  } = await getService(process.env.RENDER_BOT_SERVICE_ID!);
   console.log("will edit message");
   await handler.editMessage(
     channelId,
