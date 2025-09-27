@@ -3,6 +3,10 @@ export const getService = async (serviceId: string) => {
     `https://api.render.com/v1/services/${serviceId}`,
     {
       method: "GET",
+      headers: {
+        Authorization: `Bearer ${process.env.RENDER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
     }
   );
   const json = (await response.json()) as {
