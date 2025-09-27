@@ -22,7 +22,7 @@ export const updateEnv = async (
   const response = await fetch(
     `https://api.render.com/v1/services/${serviceId}/env-vars`,
     {
-      method: "POST",
+      method: "PUT",
       headers: {
         Authorization: `Bearer ${process.env.RENDER_API_KEY}`,
         "Content-Type": "application/json",
