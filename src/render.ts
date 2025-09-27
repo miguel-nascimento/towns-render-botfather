@@ -107,6 +107,10 @@ const checkDeploy = async (serviceId: string, deployId: string) => {
     `https://api.render.com/v1/services/${serviceId}/deploys/${deployId}`,
     {
       method: "GET",
+      headers: {
+        Authorization: `Bearer ${process.env.RENDER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
     }
   );
   return response.json() as Promise<CheckDeployResponse>;
