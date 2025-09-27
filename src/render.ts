@@ -10,9 +10,9 @@ export const getService = async (serviceId: string) => {
     }
   );
   const json = (await response.json()) as {
-    service: { serviceDetails: { url: string } };
+    serviceDetails: { url: string };
   };
-  return json.service;
+  return json;
 };
 
 export const updateEnv = async (
