@@ -12,18 +12,23 @@ export const getService = async (serviceId: string) => {
 };
 
 export const updateEnv = async (
-  projectId: string,
+  serviceId: string,
   env: Record<string, string>
 ) => {
   const response = await fetch(
-    `https://api.render.com/v1/projects/${projectId}/env`,
+    `https://api.render.com/v1/services/${serviceId}/env-vars`,
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.RENDER_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(env),
+      body: JSON.stringify(
+        Object.entries(env).map(([key, value]) => ({
+          key,
+          value,
+        }))
+      ),
     }
   );
   return response.json();
