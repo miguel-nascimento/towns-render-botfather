@@ -62,7 +62,7 @@ async function getBotInstance(
   );
 
   dummybot.onSlashCommand("help", async (handler, { channelId }) => {
-    await handler.sendMessage(channelId, "Commands: /help, /ping, /time");
+    await handler.sendMessage(channelId, "Commands: /help, /ping, /joke");
   });
 
   dummybot.onSlashCommand("ping", async (handler, { channelId, createdAt }) => {
