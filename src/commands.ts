@@ -5,8 +5,27 @@ import type { PlainMessage, SlashCommand } from "@towns-protocol/proto";
 const commands = [
   {
     name: "setup",
-    description: "Usage: <APP_PRIVATE_DATA> <JWT_SECRET>",
+    description:
+      "Usage: <APP_PRIVATE_DATA> <JWT_SECRET> (optional: <BEARER_TOKEN>)",
+  },
+  {
+    name: "setcommands",
+    description: "Usage: <APP_PRIVATE_DATA> <BEARER_TOKEN>",
   },
 ] as const satisfies PlainMessage<SlashCommand>[];
 
+export const dummyCommands = [
+  {
+    name: "help",
+    description: "Show help",
+  },
+  {
+    name: "ping",
+    description: "Ping the bot",
+  },
+  {
+    name: "joke",
+    description: "Dadjoke",
+  },
+] as const satisfies PlainMessage<SlashCommand>[];
 export default commands;
