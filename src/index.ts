@@ -2,16 +2,11 @@ import { makeTownsBot } from "@towns-protocol/bot";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
 import commands from "./commands";
-import {
-  getService,
-  isDeployCompleted,
-  isDeployInProgress,
-  triggerDeploy,
-  updateEnv,
-  waitForDeploy,
-} from "./render";
+import * as queries from "./db/queries";
+import { parseAppPrivateData } from "@towns-protocol/sdk";
+import { privateKeyToAccount } from "viem/accounts";
 
-const bot = await makeTownsBot(
+const botfather = await makeTownsBot(
   process.env.APP_PRIVATE_DATA!,
   process.env.JWT_SECRET!,
   {
@@ -19,13 +14,50 @@ const bot = await makeTownsBot(
   }
 );
 
-let inProgress = false;
+type BotInstance = {
+  bot: Awaited<ReturnType<typeof makeTownsBot>>;
+  jwtMiddleware: Awaited<
+    ReturnType<Awaited<ReturnType<typeof makeTownsBot>>["start"]>
+  >["jwtMiddleware"];
+  handler: Awaited<
+    ReturnType<Awaited<ReturnType<typeof makeTownsBot>>["start"]>
+  >["handler"];
+};
 
-bot.onSlashCommand("setup", async (handler, { channelId, args }) => {
-  if (inProgress) {
-    await handler.sendMessage(channelId, "Setup already in progress.");
-    return;
+const botCache = new Map<string, BotInstance>();
+
+async function getBotInstance(
+  clientAddress: string
+): Promise<BotInstance | null> {
+  if (botCache.has(clientAddress)) {
+    return botCache.get(clientAddress)!;
   }
+  const data = await queries.getBot(clientAddress);
+  if (!data) {
+    return null;
+  }
+  const { appPrivateData, jwtSecret } = data;
+  const bot = await makeTownsBot(appPrivateData, jwtSecret);
+  const { jwtMiddleware, handler } = await bot.start();
+
+  bot.onMessage(
+    async (handler, { isMentioned, channelId, threadId, eventId }) => {
+      if (isMentioned) {
+        await handler.sendMessage(channelId, "👀", {
+          threadId,
+          replyId: eventId,
+        });
+      }
+    }
+  );
+
+  const instance: BotInstance = { bot, jwtMiddleware, handler };
+  botCache.set(clientAddress, instance);
+
+  return instance;
+}
+
+botfather.onSlashCommand("setup", async (handler, { channelId, args }) => {
   const [appPrivateData, jwtSecret] = args;
   if (!appPrivateData || !jwtSecret) {
     await handler.sendMessage(
@@ -34,49 +66,51 @@ bot.onSlashCommand("setup", async (handler, { channelId, args }) => {
     );
     return;
   }
-  inProgress = true;
-  const { eventId } = await handler.sendMessage(channelId, "Setup started...");
 
-  await updateEnv(process.env.RENDER_BOT_SERVICE_ID!, {
-    APP_PRIVATE_DATA: appPrivateData,
-    JWT_SECRET: jwtSecret,
+  const { privateKey } = parseAppPrivateData(appPrivateData);
+  const { address: clientAddress } = privateKeyToAccount(
+    privateKey as `0x${string}`
+  );
+
+  await queries.createBot({
+    clientAddress,
+    appPrivateData,
+    jwtSecret,
   });
-  await handler.editMessage(channelId, eventId, "Deploying...");
 
-  const { id: deployId } = await triggerDeploy(
-    process.env.RENDER_BOT_SERVICE_ID!
-  );
-  await waitForDeploy(
-    process.env.RENDER_BOT_SERVICE_ID!,
-    deployId,
-    async (status) => {
-      console.log("deploy status changed", status);
-      const emoji = isDeployInProgress(status)
-        ? "🔄"
-        : isDeployCompleted(status)
-        ? "✅"
-        : "❌";
-      await handler.editMessage(
-        channelId,
-        eventId,
-        `${emoji} Deploy status: \`${status}\``
-      );
-    }
-  );
-  const service = await getService(process.env.RENDER_BOT_SERVICE_ID!);
-  await handler.editMessage(
+  const webhookUrl = `${
+    process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
+  }/webhook/${clientAddress}`;
+
+  await handler.sendMessage(
     channelId,
-    eventId,
-    `Setup completed. You can use \`${service.serviceDetails.url}/webhook\` to finish your bot setup and receive events.`
+    `✅ Bot setup complete!\n\nWebhook URL: \`${webhookUrl}\``
   );
-  inProgress = false;
 });
 
-const { jwtMiddleware, handler } = await bot.start();
+const { jwtMiddleware, handler } = await botfather.start();
 
 const app = new Hono();
 
 app.use(logger());
 app.post("/webhook", jwtMiddleware, handler);
+
+app.post("/webhook/:clientAddress", async (c) => {
+  const { clientAddress } = c.req.param();
+
+  const instance = await getBotInstance(clientAddress);
+  if (!instance) {
+    return c.json({ success: false, error: "Bot not found" }, 404);
+  }
+
+  const { jwtMiddleware, handler } = instance;
+
+  let result: Response | undefined;
+  await jwtMiddleware(c, async () => {
+    result = await handler(c);
+  });
+
+  return result!;
+});
 
 export default app;
