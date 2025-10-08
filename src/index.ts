@@ -3,14 +3,8 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import commands, { dummyCommands } from "./commands";
 import * as queries from "./db/queries";
-import {
-  AppRegistryService,
-  makeSignerContextFromBearerToken,
-  parseAppPrivateData,
-  townsEnv,
-} from "@towns-protocol/sdk";
+import { parseAppPrivateData } from "@towns-protocol/sdk";
 import { privateKeyToAccount } from "viem/accounts";
-import { hexToBytes } from "viem";
 import { updateCommands } from "./app-registry";
 
 const botfather = await makeTownsBot(
