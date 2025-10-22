@@ -14,19 +14,19 @@
   "dependencies": {
     "@connectrpc/connect-node": "^2.1.0",
     "@libsql/client": "^0.15.15",
-    "@towns-protocol/bot": "^0.0.356",
-    "@towns-protocol/proto": "^0.0.356",
-    "@towns-protocol/sdk": "^0.0.364",
-    "@towns-protocol/web3": "^0.0.356",
+    "@towns-protocol/bot": "^0.0.378",
+    "@towns-protocol/proto": "^0.0.378",
+    "@towns-protocol/sdk": "^0.0.378",
+    "@towns-protocol/web3": "^0.0.378",
     "drizzle-kit": "^0.31.5",
     "drizzle-orm": "^0.44.6",
-    "hono": "^4.9.10",
-    "viem": "^2.38.0"
+    "hono": "^4.10.2",
+    "viem": "^2.38.3"
   },
   "devDependencies": {
-    "@types/node": "^20.19.19",
-    "@typescript-eslint/eslint-plugin": "^8.46.0",
-    "@typescript-eslint/parser": "^8.46.0",
+    "@types/node": "^20.19.23",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
     "eslint": "^8.57.1",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import-x": "^4.16.1",
