@@ -4,8 +4,6 @@ import { logger } from "hono/logger";
 import commands, { dummyCommands } from "./commands";
 import * as queries from "./db/queries";
 import { parseAppPrivateData } from "@towns-protocol/sdk";
-import { privateKeyToAccount } from "viem/accounts";
-import { updateCommands } from "./app-registry";
 
 const botfather = await makeTownsBot(
   process.env.APP_PRIVATE_DATA!,
@@ -23,26 +21,25 @@ type BotInstance = {
   handler: Awaited<
     ReturnType<Awaited<ReturnType<typeof makeTownsBot>>["start"]>
   >["handler"];
+  channelIds: string[];
 };
 
 const botCache = new Map<string, BotInstance>();
 
-async function getBotInstance(
-  clientAddress: string
-): Promise<BotInstance | null> {
-  if (botCache.has(clientAddress)) {
-    return botCache.get(clientAddress)!;
+async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
+  if (botCache.has(appAddress)) {
+    return botCache.get(appAddress)!;
   }
-  const data = await queries.getBot(clientAddress);
+  const data = await queries.getBot(appAddress);
   if (!data) {
     return null;
   }
-  const { appPrivateData, jwtSecret } = data;
+  const { appPrivateData, jwtSecret, channelIds = [] } = data;
   const dummybot = await makeTownsBot(appPrivateData, jwtSecret, {
     commands: dummyCommands,
   });
 
-  const { jwtMiddleware, handler } = await dummybot.start();
+  const { jwtMiddleware, handler } = dummybot.start();
 
   dummybot.onMessage(
     async (handler, { isMentioned, channelId, threadId, eventId }) => {
@@ -57,6 +54,15 @@ async function getBotInstance(
 
   dummybot.onSlashCommand("help", async (handler, { channelId }) => {
     await handler.sendMessage(channelId, "Commands: /help, /ping, /joke");
+  });
+
+  dummybot.onChannelJoin(async (_, { channelId }) => {
+    if (channelIds?.includes(channelId)) {
+      return;
+    }
+    await queries.updateBot(appAddress, {
+      channelIds: [...(channelIds || []), channelId],
+    });
   });
 
   dummybot.onSlashCommand("ping", async (handler, { channelId, createdAt }) => {
@@ -76,18 +82,29 @@ async function getBotInstance(
     }
   );
 
+  dummybot.onSlashCommand("healthcheck", async (handler, { channelId }) => {
+    const webhookUrl = `${
+      process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
+    }/webhook/${appAddress}/health`;
+    await handler.sendMessage(
+      channelId,
+      `Pleae click on this Health check URL: \`${webhookUrl}\``
+    );
+  });
+
   const instance = {
     bot: dummybot,
     jwtMiddleware,
     handler,
+    channelIds: channelIds || [],
   } satisfies BotInstance;
-  botCache.set(clientAddress, instance);
+  botCache.set(appAddress, instance);
 
   return instance;
 }
 
 botfather.onSlashCommand("setup", async (handler, { channelId, args }) => {
-  const [appPrivateData, jwtSecret, bearerToken] = args;
+  const [appPrivateData, jwtSecret] = args;
   if (!appPrivateData || !jwtSecret) {
     await handler.sendMessage(
       channelId,
@@ -96,24 +113,20 @@ botfather.onSlashCommand("setup", async (handler, { channelId, args }) => {
     return;
   }
 
-  const { privateKey } = parseAppPrivateData(appPrivateData);
-  const { address: clientAddress } = privateKeyToAccount(
-    privateKey as `0x${string}`
-  );
+  const { appAddress } = parseAppPrivateData(appPrivateData);
+  if (!appAddress) {
+    throw new Error("Invalid app private data");
+  }
 
   await queries.createBot({
-    clientAddress,
+    appAddress,
     appPrivateData,
     jwtSecret,
   });
 
   const webhookUrl = `${
     process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
-  }/webhook/${clientAddress}`;
-
-  if (bearerToken) {
-    await updateCommands(appPrivateData, bearerToken, dummyCommands);
-  }
+  }/webhook/${appAddress}`;
 
   await handler.sendMessage(
     channelId,
@@ -121,34 +134,17 @@ botfather.onSlashCommand("setup", async (handler, { channelId, args }) => {
   );
 });
 
-botfather.onSlashCommand(
-  "setcommands",
-  async (handler, { channelId, threadId, args }) => {
-    const [appPrivateData, bearerToken] = args;
-    if (!appPrivateData || !bearerToken) {
-      await handler.sendMessage(
-        channelId,
-        "Usage: /setcommands <APP_PRIVATE_DATA> <BEARER_TOKEN>"
-      );
-      return;
-    }
-    await updateCommands(appPrivateData, bearerToken, dummyCommands);
-    await handler.sendMessage(channelId, "Commands set successfully", {
-      threadId,
-    });
-  }
-);
-const { jwtMiddleware, handler } = await botfather.start();
+const { jwtMiddleware, handler } = botfather.start();
 
 const app = new Hono();
 
 app.use(logger());
 app.post("/webhook", jwtMiddleware, handler);
 
-app.post("/webhook/:clientAddress", async (c) => {
-  const { clientAddress } = c.req.param();
+app.post("/webhook/:appAddress", async (c) => {
+  const { appAddress } = c.req.param();
 
-  const instance = await getBotInstance(clientAddress);
+  const instance = await getBotInstance(appAddress);
   if (!instance) {
     return c.json({ success: false, error: "Bot not found" }, 404);
   }
@@ -161,6 +157,25 @@ app.post("/webhook/:clientAddress", async (c) => {
   });
 
   return result!;
+});
+
+app.get("/webhook/:appAddress/health", async (c) => {
+  const { appAddress } = c.req.param();
+
+  const instance = await getBotInstance(appAddress);
+  if (!instance) {
+    return c.json({ success: false, error: "Bot not found" }, 404);
+  }
+
+  const { bot, channelIds } = instance;
+
+  const promises = channelIds.map((channelId) =>
+    bot.sendMessage(channelId, "🟢 Health check passed")
+  );
+
+  await Promise.allSettled(promises);
+
+  return c.text("OK - Message sent to all channels");
 });
 
 export default app;

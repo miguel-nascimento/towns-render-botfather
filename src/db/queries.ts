@@ -2,11 +2,11 @@ import { eq } from "drizzle-orm";
 import { db } from ".";
 import { botTable, type InsertBot } from "./schema";
 
-export const getBot = async (clientAddress: string) =>
+export const getBot = async (appAddress: string) =>
   await db
     .select()
     .from(botTable)
-    .where(eq(botTable.clientAddress, clientAddress))
+    .where(eq(botTable.appAddress, appAddress))
     .limit(1)
     .get();
 
@@ -15,9 +15,18 @@ export const createBot = async (bot: InsertBot) =>
     .insert(botTable)
     .values(bot)
     .onConflictDoUpdate({
-      target: botTable.clientAddress,
+      target: botTable.appAddress,
       set: {
         ...bot,
         createdAt: undefined, // do not overwrite createdAt
       },
     });
+
+export const updateBot = async (
+  appAddress: string,
+  updates: Partial<InsertBot>
+) =>
+  await db
+    .update(botTable)
+    .set(updates)
+    .where(eq(botTable.appAddress, appAddress));
