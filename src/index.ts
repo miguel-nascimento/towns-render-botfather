@@ -56,15 +56,6 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
     await handler.sendMessage(channelId, "Commands: /help, /ping, /joke");
   });
 
-  dummybot.onChannelJoin(async (_, { channelId }) => {
-    if (channelIds?.includes(channelId)) {
-      return;
-    }
-    await queries.updateBot(appAddress, {
-      channelIds: [...(channelIds || []), channelId],
-    });
-  });
-
   dummybot.onSlashCommand("ping", async (handler, { channelId, createdAt }) => {
     const latency = Date.now() - createdAt.getTime();
     await handler.sendMessage(channelId, `Pong! (${latency}ms)`);
@@ -83,6 +74,9 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
   );
 
   dummybot.onSlashCommand("healthcheck", async (handler, { channelId }) => {
+    await queries.updateBot(appAddress, {
+      channelIds: [...(channelIds || []), channelId],
+    });
     const webhookUrl = `${
       process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
     }/webhook/${appAddress}/health`;
@@ -173,9 +167,21 @@ app.get("/webhook/:appAddress/health", async (c) => {
     bot.sendMessage(channelId, "🟢 Health check passed")
   );
 
-  await Promise.allSettled(promises);
+  const results = await Promise.allSettled(promises);
 
-  return c.text("OK - Message sent to all channels");
+  return c.text(
+    `Health check results:\n${results
+      .map((result) =>
+        result.status === "fulfilled"
+          ? "✅"
+          : `❌ ${
+              result.reason instanceof Error
+                ? result.reason.message
+                : "Unknown error"
+            }`
+      )
+      .join(", ")}`
+  );
 });
 
 export default app;
