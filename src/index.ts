@@ -4,6 +4,8 @@ import { logger } from "hono/logger";
 import commands, { dummyCommands } from "./commands";
 import * as queries from "./db/queries";
 import { parseAppPrivateData } from "@towns-protocol/sdk";
+import { getBalance } from "viem/actions";
+import { parseEther } from "viem";
 
 const botfather = await makeTownsBot(
   process.env.APP_PRIVATE_DATA!,
@@ -85,37 +87,55 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
       `Pleae click on this Health check URL: \`${webhookUrl}\``
     );
   });
+  const requiredBalanceToPayForGas = parseEther("0.0001");
 
   // userId -> eventId
   const map = new Map<string, string>();
-  dummybot.onSlashCommand(
-    "tip",
-    async (handler, { channelId, args, userId, eventId }) => {
-      const amount = args[0];
-      if (!amount) {
-        await handler.sendMessage(channelId, "Usage: /tip <amount>");
-        return;
-      }
-      map.set(userId, eventId);
+  dummybot.onSlashCommand("tip", async (handler, { channelId, userId }) => {
+    const balance = await getBalance(dummybot.viem, {
+      address: dummybot.botId as `0x${string}`,
+    });
+    if (balance < requiredBalanceToPayForGas) {
+      await handler.sendMessage(
+        channelId,
+        "Please send me some ETH to pay for gas 😁 (use my protocol user id: `" +
+          dummybot.botId +
+          "`). Call `/tip` again after sending the ETH."
+      );
+      return;
     }
-  );
+    const { eventId: messageEventId } = await handler.sendMessage(
+      channelId,
+      "Tip this message and I'll tip it back! 😊"
+    );
+    map.set(userId, messageEventId);
+  });
+
+  dummybot.onTip(async (handler, event) => {
+    console.log("onTip", event);
+  });
 
   dummybot.onTip(
     async (handler, { channelId, userId, amount, receiverAddress }) => {
-      if (receiverAddress !== dummybot.appAddress) {
+      if (receiverAddress !== dummybot.botId) {
         return;
       }
       if (!map.has(userId)) {
         return;
       }
       const eventId = map.get(userId)!;
-      await handler.sendTip({
+      const tx = await handler.sendTip({
         channelId,
         receiverUserId: userId,
         amount,
         receiver: receiverAddress,
         messageId: eventId,
       });
+      await handler.sendMessage(
+        channelId,
+        "It was a pleasure doing business with you! 😊\n\nTx Receipt: https://base-sepolia.blockscout.com/tx/" +
+          tx.txHash
+      );
     }
   );
 
