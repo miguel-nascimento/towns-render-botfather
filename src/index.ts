@@ -91,33 +91,35 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
 
   // userId -> eventId
   const map = new Map<string, string>();
-  dummybot.onSlashCommand("tip", async (handler, { channelId, userId }) => {
-    const balance = await getBalance(dummybot.viem, {
-      address: dummybot.botId as `0x${string}`,
-    });
-    if (balance < requiredBalanceToPayForGas) {
+  dummybot.onSlashCommand(
+    "tip",
+    async (handler, { channelId, userId, eventId }) => {
+      const balance = await getBalance(dummybot.viem, {
+        address: dummybot.botId as `0x${string}`,
+      });
+      if (balance < requiredBalanceToPayForGas) {
+        await handler.sendMessage(
+          channelId,
+          "Please send me some ETH to pay for gas 😁 (use my protocol user id: `" +
+            dummybot.botId +
+            "`). Call `/tip` again after sending the ETH."
+        );
+        return;
+      }
       await handler.sendMessage(
         channelId,
-        "Please send me some ETH to pay for gas 😁 (use my protocol user id: `" +
-          dummybot.botId +
-          "`). Call `/tip` again after sending the ETH."
+        "Tip this message and I'll tip it back! 😊"
       );
-      return;
+      map.set(userId, eventId);
     }
-    const { eventId: messageEventId } = await handler.sendMessage(
-      channelId,
-      "Tip this message and I'll tip it back! 😊"
-    );
-    map.set(userId, messageEventId);
-  });
-
-  dummybot.onTip(async (handler, event) => {
-    console.log("onTip", event);
-  });
+  );
 
   dummybot.onTip(
-    async (handler, { channelId, userId, amount, receiverAddress }) => {
-      if (receiverAddress !== dummybot.botId) {
+    async (
+      handler,
+      { channelId, userId, amount, senderAddress, receiverAddress }
+    ) => {
+      if (receiverAddress !== dummybot.appAddress) {
         return;
       }
       if (!map.has(userId)) {
@@ -128,7 +130,7 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
         channelId,
         receiverUserId: userId,
         amount,
-        receiver: receiverAddress,
+        receiver: senderAddress,
         messageId: eventId,
       });
       await handler.sendMessage(
