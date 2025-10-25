@@ -24,5 +24,9 @@ export const dummyCommands = [
     name: "healthcheck",
     description: "Gives you a link to the health check URL",
   },
+  {
+    name: "tip",
+    description: "Tip the bot",
+  },
 ] as const satisfies PlainMessage<SlashCommand>[];
 export default commands;

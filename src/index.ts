@@ -86,6 +86,39 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
     );
   });
 
+  // userId -> eventId
+  const map = new Map<string, string>();
+  dummybot.onSlashCommand(
+    "tip",
+    async (handler, { channelId, args, userId, eventId }) => {
+      const amount = args[0];
+      if (!amount) {
+        await handler.sendMessage(channelId, "Usage: /tip <amount>");
+        return;
+      }
+      map.set(userId, eventId);
+    }
+  );
+
+  dummybot.onTip(
+    async (handler, { channelId, userId, amount, receiverAddress }) => {
+      if (receiverAddress !== dummybot.appAddress) {
+        return;
+      }
+      if (!map.has(userId)) {
+        return;
+      }
+      const eventId = map.get(userId)!;
+      await handler.sendTip({
+        channelId,
+        receiverUserId: userId,
+        amount,
+        receiver: receiverAddress,
+        messageId: eventId,
+      });
+    }
+  );
+
   const instance = {
     bot: dummybot,
     jwtMiddleware,
