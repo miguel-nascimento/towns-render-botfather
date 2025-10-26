@@ -55,7 +55,10 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
   );
 
   dummybot.onSlashCommand("help", async (handler, { channelId }) => {
-    await handler.sendMessage(channelId, "Commands: /help, /ping, /joke");
+    await handler.sendMessage(
+      channelId,
+      "Commands: /help, /ping, /joke /tip /healthcheck\n\nPlease test them all ❤️"
+    );
   });
 
   dummybot.onSlashCommand("ping", async (handler, { channelId, createdAt }) => {
