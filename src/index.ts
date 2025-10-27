@@ -165,25 +165,32 @@ botfather.onSlashCommand("setup", async (handler, { channelId, args }) => {
     return;
   }
 
-  const { appAddress } = parseAppPrivateData(appPrivateData);
-  if (!appAddress) {
-    throw new Error("Invalid app private data");
+  try {
+    const { appAddress } = parseAppPrivateData(appPrivateData);
+    if (!appAddress) {
+      throw new Error("Invalid app private data");
+    }
+
+    await queries.createBot({
+      appAddress,
+      appPrivateData,
+      jwtSecret,
+    });
+
+    const webhookUrl = `${
+      process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
+    }/webhook/${appAddress}`;
+
+    await handler.sendMessage(
+      channelId,
+      `✅ Bot setup complete!\n\nWebhook URL: \`${webhookUrl}\``
+    );
+  } catch (error) {
+    await handler.sendMessage(
+      channelId,
+      "❌ Invalid app private data format. Can you check if you're using the correct credentials?"
+    );
   }
-
-  await queries.createBot({
-    appAddress,
-    appPrivateData,
-    jwtSecret,
-  });
-
-  const webhookUrl = `${
-    process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
-  }/webhook/${appAddress}`;
-
-  await handler.sendMessage(
-    channelId,
-    `✅ Bot setup complete!\n\nWebhook URL: \`${webhookUrl}\``
-  );
 });
 
 const { jwtMiddleware, handler } = botfather.start();
@@ -204,11 +211,16 @@ app.post("/webhook/:appAddress", async (c) => {
   const { jwtMiddleware, handler } = instance;
 
   let result: Response | undefined;
-  await jwtMiddleware(c, async () => {
+  const middlewareResult = await jwtMiddleware(c, async () => {
     result = await handler(c);
   });
 
-  return result!;
+  // If middleware returned a response (e.g., auth failure), return it
+  if (middlewareResult) {
+    return middlewareResult;
+  }
+
+  return result;
 });
 
 app.get("/webhook/:appAddress/health", async (c) => {
