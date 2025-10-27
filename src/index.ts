@@ -155,43 +155,47 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
   return instance;
 }
 
-botfather.onSlashCommand("setup", async (handler, { channelId, args }) => {
-  const [appPrivateData, jwtSecret] = args;
-  if (!appPrivateData || !jwtSecret) {
-    await handler.sendMessage(
-      channelId,
-      "Usage: /setup <APP_PRIVATE_DATA> <JWT_SECRET>"
-    );
-    return;
-  }
-
-  try {
-    const { appAddress } = parseAppPrivateData(appPrivateData);
-    if (!appAddress) {
-      throw new Error("Invalid app private data");
+botfather.onSlashCommand(
+  "setup",
+  async (handler, { channelId, args, eventId }) => {
+    const [appPrivateData, jwtSecret] = args;
+    if (!appPrivateData || !jwtSecret) {
+      await handler.sendMessage(
+        channelId,
+        "Usage: /setup <APP_PRIVATE_DATA> <JWT_SECRET>"
+      );
+      return;
     }
 
-    await queries.createBot({
-      appAddress,
-      appPrivateData,
-      jwtSecret,
-    });
+    try {
+      const { appAddress } = parseAppPrivateData(appPrivateData);
+      if (!appAddress) {
+        throw new Error("Invalid app private data");
+      }
 
-    const webhookUrl = `${
-      process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
-    }/webhook/${appAddress}`;
+      await queries.createBot({
+        appAddress,
+        appPrivateData,
+        jwtSecret,
+      });
 
-    await handler.sendMessage(
-      channelId,
-      `✅ Bot setup complete!\n\nWebhook URL: \`${webhookUrl}\``
-    );
-  } catch (error) {
-    await handler.sendMessage(
-      channelId,
-      "❌ Invalid app private data format. Can you check if you're using the correct credentials?"
-    );
+      const webhookUrl = `${
+        process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
+      }/webhook/${appAddress}`;
+
+      await handler.sendMessage(
+        channelId,
+        `✅ Bot setup complete!\n\nWebhook URL: \`${webhookUrl}\``,
+        { replyId: eventId }
+      );
+    } catch (error) {
+      await handler.sendMessage(
+        channelId,
+        "❌ Invalid app private data format. Can you check if you're using the correct credentials?"
+      );
+    }
   }
-});
+);
 
 const { jwtMiddleware, handler } = botfather.start();
 
