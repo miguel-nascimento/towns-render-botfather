@@ -61,20 +61,28 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
     );
   });
 
-  dummybot.onSlashCommand("ping", async (handler, { channelId, createdAt }) => {
-    const latency = Date.now() - createdAt.getTime();
-    await handler.sendMessage(channelId, `Pong! (${latency}ms)`);
-  });
+  dummybot.onSlashCommand(
+    "ping",
+    async (handler, { channelId, createdAt, eventId }) => {
+      const latency = Date.now() - createdAt.getTime();
+      await handler.sendMessage(channelId, `Pong! (${latency}ms)`, {
+        replyId: eventId,
+      });
+    }
+  );
 
   dummybot.onSlashCommand(
     "joke",
-    async (handler, { channelId, replyId, threadId }) => {
+    async (handler, { channelId, eventId, threadId }) => {
       const { joke } = await fetch("https://icanhazdadjoke.com/", {
         headers: {
           Accept: "application/json",
         },
       }).then((res) => res.json() as Promise<{ joke: string }>);
-      await handler.sendMessage(channelId, joke, { replyId, threadId });
+      await handler.sendMessage(channelId, joke, {
+        replyId: eventId,
+        threadId,
+      });
     }
   );
 
@@ -105,13 +113,15 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
           channelId,
           "Please send me some ETH to pay for gas 😁 (use my protocol user id: `" +
             dummybot.botId +
-            "`). Call `/tip` again after sending the ETH."
+            "`). Call `/tip` again after sending the ETH.",
+          { replyId: eventId }
         );
         return;
       }
       await handler.sendMessage(
         channelId,
-        "Tip this message and I'll tip it back! 😊"
+        "Tip this message and I'll tip it back! 😊",
+        { replyId: eventId }
       );
       map.set(userId, eventId);
     }
@@ -139,7 +149,8 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
       await handler.sendMessage(
         channelId,
         "It was a pleasure doing business with you! 😊\n\nTx Receipt: https://base-sepolia.blockscout.com/tx/" +
-          tx.txHash
+          tx.txHash,
+        { replyId: eventId }
       );
     }
   );
@@ -162,7 +173,8 @@ botfather.onSlashCommand(
     if (!appPrivateData || !jwtSecret) {
       await handler.sendMessage(
         channelId,
-        "Usage: /setup <APP_PRIVATE_DATA> <JWT_SECRET>"
+        "Usage: /setup <APP_PRIVATE_DATA> <JWT_SECRET>",
+        { replyId: eventId }
       );
       return;
     }
@@ -191,7 +203,8 @@ botfather.onSlashCommand(
     } catch (error) {
       await handler.sendMessage(
         channelId,
-        "❌ Invalid app private data format. Can you check if you're using the correct credentials?"
+        "❌ Invalid app private data format. Can you check if you're using the correct credentials?",
+        { replyId: eventId }
       );
     }
   }
