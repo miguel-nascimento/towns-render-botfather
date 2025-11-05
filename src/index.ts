@@ -65,9 +65,13 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
     "ping",
     async (handler, { channelId, createdAt, eventId }) => {
       const latency = Date.now() - createdAt.getTime();
-      await handler.sendMessage(channelId, `Pong! (${latency}ms)`, {
-        replyId: eventId,
-      });
+      await handler.sendMessage(
+        channelId,
+        `Pong! (${latency}ms) [https://bankr.bot/](https://bankr.bot/)`,
+        {
+          replyId: eventId,
+        }
+      );
     }
   );
 
