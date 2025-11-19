@@ -28,5 +28,9 @@ export const dummyCommands = [
     name: "tip",
     description: "Tip the bot",
   },
+  {
+    name: "createChannel",
+    description: "Usage: /createChannel <channelName>",
+  },
 ] as const satisfies PlainMessage<SlashCommand>[];
 export default commands;

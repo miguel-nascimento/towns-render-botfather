@@ -57,7 +57,7 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
   dummybot.onSlashCommand("help", async (handler, { channelId }) => {
     await handler.sendMessage(
       channelId,
-      "Commands: /help, /ping, /joke /tip /healthcheck\n\nPlease test them all ❤️"
+      "Commands: /help, /ping, /joke /tip /healthcheck /createChannel\n\nPlease test them all ❤️"
     );
   });
 
@@ -145,9 +145,8 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
       const eventId = map.get(userId)!;
       const tx = await handler.sendTip({
         channelId,
-        receiverUserId: userId,
+        userId,
         amount,
-        receiver: senderAddress,
         messageId: eventId,
       });
       await handler.sendMessage(
@@ -156,6 +155,38 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
           tx.txHash,
         { replyId: eventId }
       );
+    }
+  );
+
+  dummybot.onSlashCommand(
+    "createChannel",
+    async (handler, { spaceId, channelId, args, eventId }) => {
+      const channelName = args.join(" ");
+      if (!channelName) {
+        await handler.sendMessage(
+          channelId,
+          "Usage: /createChannel <channelName>",
+          { replyId: eventId }
+        );
+      }
+      try {
+        const createdChannelId = await handler.createChannel(spaceId, {
+          name: channelName,
+        });
+        await handler.sendMessage(
+          channelId,
+          "Channel created successfully! 🎉\n\nChannel ID: " + createdChannelId,
+          { replyId: eventId }
+        );
+      } catch (error) {
+        const { eventId: errorEventId } = await handler.sendMessage(
+          channelId,
+          "Failed to create channel. I will send the error in thread, but can you make sure my gas wallet is funded and that I have the CreateChannel permission? Thanks for testing! 😇\n"
+        );
+        await handler.sendMessage(channelId, `${(error as Error).message}\n`, {
+          threadId: errorEventId,
+        });
+      }
     }
   );
 
