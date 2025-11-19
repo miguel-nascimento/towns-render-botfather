@@ -247,11 +247,13 @@ botfather.onSlashCommand(
 
 const { jwtMiddleware, handler } = botfather.start();
 
+const botapp = new Hono();
+
+botapp.use(logger());
+botapp.post("/webhook", jwtMiddleware, handler);
+
 const app = new Hono();
-
-app.use(logger());
-app.post("/webhook", jwtMiddleware, handler);
-
+app.route("/", botapp);
 app.post("/webhook/:appAddress", async (c) => {
   const { appAddress } = c.req.param();
 
