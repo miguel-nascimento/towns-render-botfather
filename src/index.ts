@@ -251,6 +251,9 @@ const botapp = new Hono();
 
 botapp.use(logger());
 botapp.post("/webhook", jwtMiddleware, handler);
+botapp.get("/.well-known/agent-metadata.json", async (c) => {
+  return c.json(await botfather.getIdentityMetadata());
+});
 
 const app = new Hono();
 app.route("/", botapp);
