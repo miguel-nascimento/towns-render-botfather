@@ -258,7 +258,7 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
           });
           return;
         }
-        const lines = roles.map((r) => `- ${r.name} (${r.id})`).join("\n");
+        const lines = roles.map((r) => `- ${r.name} (ID: ${r.id})`).join("\n");
         await handler.sendMessage(channelId, `Roles:\n${lines}`, {
           replyId: eventId,
         });
@@ -608,7 +608,21 @@ app.get("/webhook/:appAddress/health", async (c) => {
 
 app.post("/webhook/:appAddress", async (c) => {
   const { appAddress } = c.req.param();
-  return forwardToBotApp(c, appAddress, `/webhook/${appAddress}`);
+  const instance = await getBotInstance(appAddress);
+  if (!instance) {
+    return c.json({ success: false, error: "Bot not found" }, 404);
+  }
+
+  const url = new URL(c.req.url);
+  url.pathname = "/webhook";
+
+  const request = new Request(url, {
+    method: c.req.method,
+    headers: c.req.raw.headers,
+    body: c.req.raw.body,
+  });
+
+  return instance.app.fetch(request);
 });
 
 app.all("/bot/:appAddress/*", async (c) => {
