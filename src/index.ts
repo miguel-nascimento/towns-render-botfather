@@ -61,7 +61,7 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
       const latency = Date.now() - createdAt.getTime();
       await handler.sendMessage(
         channelId,
-        `Pong! (${latency}ms) [https://bankr.bot/](https://bankr.bot/)`,
+        `Pong! (${latency}ms)`,
         {
           replyId: eventId,
         }
@@ -88,9 +88,8 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
     await queries.updateBot(appAddress, {
       channelIds: [...(channelIds || []), channelId],
     });
-    const webhookUrl = `${
-      process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
-    }/webhook/${appAddress}/health`;
+    const webhookUrl = `${process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
+      }/webhook/${appAddress}/health`;
     await handler.sendMessage(
       channelId,
       `Pleae click on this Health check URL: \`${webhookUrl}\``
@@ -110,8 +109,8 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
         await handler.sendMessage(
           channelId,
           "Please send me some ETH to pay for gas 😁 (use my protocol user id: `" +
-            dummybot.botId +
-            "`). Call `/tip` again after sending the ETH.",
+          dummybot.botId +
+          "`). Call `/tip` again after sending the ETH.",
           { replyId: eventId }
         );
         return;
@@ -171,7 +170,7 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
         await handler.sendMessage(
           channelId,
           "It was a pleasure doing business with you! 😊\n\nTx Receipt: https://base-sepolia.blockscout.com/tx/" +
-            tx.txHash,
+          tx.txHash,
           { replyId: eventId }
         );
       }
@@ -522,9 +521,8 @@ botfather.onSlashCommand(
         jwtSecret,
       });
 
-      const webhookUrl = `${
-        process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
-      }/webhook/${appAddress}`;
+      const webhookUrl = `${process.env.RENDER_EXTERNAL_URL || "http://localhost:3000"
+        }/webhook/${appAddress}`;
 
       await handler.sendMessage(
         channelId,
@@ -586,11 +584,10 @@ const handleHealthCheck = async (c: Context, appAddress: string) => {
       .map((result) =>
         result.status === "fulfilled"
           ? "✅"
-          : `❌ ${
-              result.reason instanceof Error
-                ? result.reason.message
-                : "Unknown error"
-            }`
+          : `❌ ${result.reason instanceof Error
+            ? result.reason.message
+            : "Unknown error"
+          }`
       )
       .join(", ")}`
   );
