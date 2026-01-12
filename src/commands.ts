@@ -59,5 +59,9 @@ export const dummyCommands = [
     description:
       "Usage: /unpin <eventId> - Unpins the message with the given eventId",
   },
+  {
+    name: "miniapp",
+    description: "Usage: /miniapp - sends a test miniapp",
+  },
 ] as const satisfies PlainMessage<SlashCommand>[];
 export default commands;
