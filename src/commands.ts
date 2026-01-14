@@ -63,5 +63,10 @@ export const dummyCommands = [
     name: "miniapp",
     description: "Usage: /miniapp - sends a test miniapp",
   },
+  {
+    name: "thread",
+    description:
+      "Usage: /thread <message> - Creates a thread with the given message",
+  },
 ] as const satisfies PlainMessage<SlashCommand>[];
 export default commands;

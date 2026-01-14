@@ -176,7 +176,14 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
 
   dummybot.onSlashCommand(
     "createChannel",
-    async (handler, { spaceId, channelId, args, eventId }) => {
+    async (handler, { spaceId, channelId, args, eventId, isDm }) => {
+      if (isDm) {
+        await handler.sendMessage(
+          channelId,
+          "This command is not available in DMs."
+        );
+        return;
+      }
       const channelName = args.join(" ");
       if (!channelName) {
         await handler.sendMessage(
@@ -208,7 +215,14 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
 
   dummybot.onSlashCommand(
     "createrole",
-    async (handler, { spaceId, channelId, args, mentions, eventId }) => {
+    async (handler, { spaceId, channelId, args, mentions, eventId, isDm }) => {
+      if (isDm) {
+        await handler.sendMessage(
+          channelId,
+          "This command is not available in DMs."
+        );
+        return;
+      }
       const roleName = args[0];
       if (!roleName) {
         await handler.sendMessage(
@@ -245,7 +259,14 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
 
   dummybot.onSlashCommand(
     "listallroles",
-    async (handler, { spaceId, channelId, eventId }) => {
+    async (handler, { spaceId, channelId, eventId, isDm }) => {
+      if (isDm) {
+        await handler.sendMessage(
+          channelId,
+          "This command is not available in DMs."
+        );
+        return;
+      }
       try {
         const roles = await dummybot.getAllRoles(spaceId);
         if (!roles?.length) {
@@ -273,7 +294,14 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
 
   dummybot.onSlashCommand(
     "getrole",
-    async (handler, { spaceId, channelId, args, eventId }) => {
+    async (handler, { spaceId, channelId, args, eventId, isDm }) => {
+      if (isDm) {
+        await handler.sendMessage(
+          channelId,
+          "This command is not available in DMs."
+        );
+        return;
+      }
       const roleId = args[0];
       if (!roleId) {
         await handler.sendMessage(channelId, "Usage: /getrole <roleId>", {
@@ -317,7 +345,15 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
 
   dummybot.onSlashCommand(
     "deleterole",
-    async (handler, { spaceId, channelId, args, eventId }) => {
+    async (handler, { spaceId, channelId, args, eventId, isDm }) => {
+      if (isDm) {
+        await handler.sendMessage(
+          channelId,
+          "This command is not available in DMs."
+        );
+        return;
+      }
+
       const roleId = args[0];
       if (!roleId) {
         await handler.sendMessage(channelId, "Usage: /deleterole <roleId>", {
@@ -495,6 +531,16 @@ async function getBotInstance(appAddress: string): Promise<BotInstance | null> {
       });
     }
   );
+
+  dummybot.onSlashCommand("thread", async (handler, { channelId, eventId }) => {
+    await handler.sendMessage(
+      channelId,
+      "As my magic spell cast, a thread is created! 🪄✨",
+      {
+        threadId: eventId,
+      }
+    );
+  });
 
   const botApp = dummybot.start();
 
